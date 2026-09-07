@@ -827,12 +827,47 @@ body::before{content:'';position:fixed;inset:0;z-index:0;background:
       </div>
       <div style="padding:10px;background:rgba(212,169,67,0.06);border:1px solid rgba(212,169,67,0.25);border-radius:8px;font-size:11px;line-height:1.7;color:var(--fg-2)">
         获取 Key：智谱 <b>open.bigmodel.cn</b>；DeepSeek <b>platform.deepseek.com</b>。<br>
-        点亮「真实 API 调用」后，✨AI分析、🤝AI连接、💬对话 与 📎文件点评 均升级为大模型模式，断网自动回退离线引擎。
+        点亮「真实 API 调用」后，✨AI分析、🤝AI连接、✨标定药势、💬对话 与 📎文件点评 均升级为大模型模式，断网自动回退离线引擎。
       </div>
     </div>
     <div class="modal-foot">
       <button class="btn" id="api-test" style="padding:9px 16px;border:1px solid var(--border)">🔌 测试连接</button>
       <button class="btn btn-primary" id="api-save" style="padding:9px 20px">保存配置</button>
+    </div>
+  </div>
+</div>
+
+<!-- 药势自动标定 -->
+<div class="modal-mask" id="modal-calib">
+  <div class="modal" style="width:720px;max-width:96vw">
+    <div class="modal-head">
+      <div class="modal-title">✨ 药势自动标定 · AI 语义分解 + 规则定量</div>
+      <button class="modal-close" data-close title="关闭">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="ai-target" id="calib-target">
+        <div class="ai-target-icon" style="background:linear-gradient(135deg,var(--herb),#8a3a2a)">草</div>
+        <div class="ai-target-info">
+          <div class="ai-target-label">标定目标</div>
+          <div class="ai-target-name serif">未选择</div>
+          <div class="ai-target-desc">请在画布中选择一个中药节点</div>
+        </div>
+      </div>
+      <div class="ai-thinking" id="calib-thinking">
+        <div class="ai-thinking-spinner"></div>
+        <div style="font-size:13px;color:var(--fg-2)" id="calib-thinking-text">AI 正在按《药势标定学》SOP 推导…</div>
+        <div class="ai-thinking-steps" id="calib-steps">
+          <div class="ai-thinking-step"><span class="stmark">○</span>摘录：聚合性味归经 / 功能主治 / 药理原文</div>
+          <div class="ai-thinking-step"><span class="stmark">○</span>辨势：功效关键词映射八势方向</div>
+          <div class="ai-thinking-step"><span class="stmark">○</span>定量：动词烈度 + 用量域定主势峰值</div>
+          <div class="ai-thinking-step"><span class="stmark">○</span>校准：次势×0.6、兼治记 1–2、毒性标签</div>
+        </div>
+      </div>
+      <div class="ai-result" id="calib-result"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" data-close style="padding:9px 16px;border:1px solid var(--border)">关闭</button>
+      <button class="btn btn-primary" id="calib-run" style="padding:9px 20px">✨ 开始标定</button>
     </div>
   </div>
 </div>
@@ -2153,7 +2188,12 @@ function hengNodeSectionHTML(n){
   if(n.type==='herb'){vec=HENG.herbVec[n.name];title='衡象药势';}
   else if(n.type==='symptom'){vec=HENG.symptomVec[n.name];title='衡象病机向量';}
   else if(n.type==='formula'){vec=HENG.formulaVec(n);title='衡象方剂向量';}
-  if(!vec||!Object.keys(vec).length)return '';
+  if(!vec||!Object.keys(vec).length){
+    if(n.type==='herb')return '<div class="detail-section"><div class="detail-section-title">衡象药势</div>'+
+    '<div style="font-size:12px;color:var(--fg-2);margin-bottom:8px">该药尚未标定势向量，可自动推导后写入。</div>'+
+    '<button class="btn btn-primary" style="padding:6px 14px" onclick="CALIB.open(selectedNode)">✨ AI 自动标定药势</button></div>';
+    return '';
+  }
   var entries=Object.keys(vec).map(function(k){return [k,vec[k]];}).sort(function(a,b){return b[1]-a[1];});
   return '<div class="detail-section"><div class="detail-section-title">'+title+'</div>'+
   entries.map(function(it){
@@ -2213,6 +2253,7 @@ function updateDetailPanel(){
   '<button class="btn" data-act="edit">✎ 编辑</button>'+
   '<button class="btn" data-act="connect">🔗 连接</button>'+
   '<button class="btn" data-act="aiconnect">🤝 AI连接</button>'+
+  (n.type==='herb'?'<button class="btn" data-act="calib">✨ 标定药势</button>':'')+
   '<button class="btn" data-act="ai">✨ AI</button>'+
   '<button class="btn btn-danger" data-act="delete">🗑 删除</button></div>';
   body.querySelectorAll('.relation-item').forEach(function(el){
@@ -2227,6 +2268,7 @@ function updateDetailPanel(){
       if(act==='edit')openEditModal(selectedNode);
       else if(act==='connect')startConnect(selectedNode);
       else if(act==='aiconnect')AICONNECT.open();
+      else if(act==='calib')CALIB.open(selectedNode);
       else if(act==='ai')openAIModal(selectedNode);
       else if(act==='delete'){deleteNode(selectedNode);toast('节点已删除','success');updateDetailPanel();updateNodeList();updateStats();}
     });
@@ -2513,7 +2555,7 @@ $('api-save').addEventListener('click',function(){
   AICFG.data.key=$('api-key').value.trim();
   AICFG.data.proxy=$('api-proxy').value.trim();
   AICFG.save();
-  toast(AICFG.data.enabled&&AICFG.data.key?'配置已保存：✨AI分析、🤝AI连接、💬对话 与 📎文件点评 将调用真实 API':'配置已保存（内置引擎模式）','success');
+  toast(AICFG.data.enabled&&AICFG.data.key?'配置已保存：✨AI分析、🤝AI连接、✨标定药势、💬对话 与 📎文件点评 将调用真实 API':'配置已保存（内置引擎模式）','success');
   $('modal-api').classList.remove('show');
 });
 $('api-test').addEventListener('click',async function(){
@@ -4565,6 +4607,172 @@ var FILEAN={
   }
 };
 window.FILEAN=FILEAN;
+
+/* ==================================================================
+   药势自动标定 CALIB（AI 语义分解 + 规则定量）
+   《药势标定学》SOP：方向交给语义理解，强度交给规则刻度
+================================================================== */
+var CALIB={
+  node:null,result:null,
+  open:function(node){
+    if(!node||node.type!=='herb'){toast('药势标定仅适用于中药节点','error');return;}
+    this.node=node;this.result=null;
+    var old=HENG.herbVec[node.name];
+    $('calib-target').innerHTML=
+      '<div class="ai-target-icon" style="background:linear-gradient(135deg,var(--herb),#8a3a2a)">'+TYPE_ICON.herb+'</div>'+
+      '<div class="ai-target-info"><div class="ai-target-label">标定目标 · '+TYPE_LABEL.herb+'</div>'+
+      '<div class="ai-target-name serif">'+escapeHtml(node.name)+'</div>'+
+      '<div class="ai-target-desc">'+escapeHtml((node.nature||node.functions||'暂无功效资料').slice(0,60))+
+      (old&&Object.keys(old).length?('｜现有向量：'+FILEAN.vecStr(old)):'｜尚未标定')+'</div></div>';
+    $('calib-thinking').classList.remove('show');
+    $('calib-result').classList.remove('show');
+    $('calib-result').innerHTML='';
+    $('modal-calib').classList.add('show');
+    setStatus('✨ 药势标定：'+node.name);
+  },
+  prompt:function(n,text){
+    var defs=HENG.DIMS.map(function(d){
+      var g=HENG.gua[d];return d+'='+g.force+'（'+g.state+'，'+g.desc+'）';
+    }).join('\n');
+    return [
+      {role:'system',content:'你是《衡象论·药势标定学》自动标定引擎。只输出纯 JSON（不要 markdown 代码块），结构：{"dims":{"qian":0,"kan":0,"kun":0,"dui":0,"zhen":0,"xun":0,"gen":0,"li":0},"primary":"主势名","reason":"一句话依据"}\n八势键定义：\n'+defs+'\n强度规则：主势 3–5（功效居首、峻烈攻逐动词顶格 5）；次势约为主势×0.6 四舍五入；兼治记 1–2；无该势写 0。方向由语义决定，强度请按此刻度。'},
+      {role:'user',content:'中药：'+n.name+'\n资料：\n'+text+'\n请标定药势向量。'}
+    ];
+  },
+  parseLLM:function(txt){
+    var m=String(txt||'').match(/\{[\s\S]*\}/);
+    var j=null;if(m){try{j=JSON.parse(m[0]);}catch(e){}}
+    var dims={},reason='';
+    if(j&&typeof j==='object'){
+      reason=j.reason||j.依据||'';
+      var src=j.dims||j.vec;
+      if(src&&typeof src==='object'){
+        HENG.DIMS.forEach(function(d){if(typeof src[d]==='number')dims[d]=src[d];});
+      }else{
+        HENG.DIMS.forEach(function(d){if(typeof j[d]==='number')dims[d]=j[d];});
+      }
+    }
+    var out={};
+    HENG.DIMS.forEach(function(d){
+      if(typeof dims[d]==='number'&&dims[d]>0)out[d]=Math.max(1,Math.min(5,Math.round(dims[d])));
+    });
+    return {dims:out,reason:reason};
+  },
+  mergeVec:function(off,llm){
+    var v={};
+    Object.keys(off||{}).forEach(function(d){v[d]=Math.max(1,Math.min(5,Math.round(off[d])));});
+    var llmDirs=Object.keys(llm||{}).sort(function(a,b){return (llm[b]||0)-(llm[a]||0);});
+    llmDirs.forEach(function(d,i){
+      if(HENG.DIMS.indexOf(d)<0||v[d])return;
+      var val=Math.round(llm[d]);
+      if(i===0)val=Math.max(3,Math.min(5,val));
+      else val=Math.max(1,Math.min(4,Math.round(val*0.6)));
+      v[d]=val;
+    });
+    if(!Object.keys(v).length)return {};
+    var dims=Object.keys(v).sort(function(a,b){return v[b]-v[a];});
+    if(v[dims[0]]<3)v[dims[0]]=3;
+    return v;
+  },
+  evidence:function(text){
+    var hits=[];
+    Object.keys(FILEAN.FORCE_KW).forEach(function(d){
+      FILEAN.FORCE_KW[d].forEach(function(pair){
+        if(String(text).indexOf(pair[0])>=0)hits.push({dim:d,kw:pair[0],val:pair[1]});
+      });
+    });
+    return hits.sort(function(a,b){return b.val-a.val;}).slice(0,12);
+  },
+  resultHTML:function(){
+    var r=this.result,n=this.node;
+    var modelTag={glm:'智谱清言 '+AICFG.data.model,deepseek:'DeepSeek '+AICFG.data.model,custom:AICFG.data.model}[AICFG.data.provider]||AICFG.data.model;
+    var source=r.usedApi?('🤖 大模型语义分解 + ⚙ 规则烈度定量（'+modelTag+'）'):'⚙ 内置关键词引擎（未启用 API 或调用失败回退）';
+    var rows=HENG.DIMS.filter(function(d){return r.vec[d];}).map(function(d){
+      var g=HENG.gua[d];
+      return '<div style="display:flex;align-items:center;gap:8px;margin:5px 0;font-size:12.5px">'+
+      '<span style="width:96px;flex-shrink:0;color:'+g.color+'">'+g.sym+' '+g.force+'</span>'+
+      '<span class="vec-bar" style="width:'+(r.vec[d]*26)+'px;background:'+g.color+'"></span>'+
+      '<span style="color:var(--accent);font-weight:600">+'+r.vec[d]+'</span></div>';
+    }).join('');
+    var evHtml=r.evidence.length?('<div class="heng-sec"><div class="heng-sec-t">📌 关键词证据</div>'+r.evidence.map(function(e){
+      var g=HENG.gua[e.dim];
+      return '<span class="heng-chip" style="cursor:default"><b style="color:'+g.color+'">'+e.kw+'</b> → '+g.force+' +'+e.val+'</span>';
+    }).join('')+'</div>'):'<div style="font-size:11px;color:var(--fg-2)">未命中关键词，方向由大模型语义推断。</div>';
+    var oldHtml=r.oldVec&&Object.keys(r.oldVec).length?
+      ('<div style="font-size:12px;color:var(--fg-2);margin-bottom:8px">原向量：'+FILEAN.vecStr(r.oldVec)+'（写入后覆盖）</div>'):'';
+    return '<div class="ai-section"><div class="ai-section-title">⚖ 标定结果 · '+escapeHtml(n.name)+'</div>'+
+      '<div style="font-size:11px;color:var(--fg-2);margin-bottom:8px">'+source+'</div>'+oldHtml+rows+
+      (r.reason?'<div style="margin-top:8px;padding:9px 12px;background:rgba(0,0,0,0.25);border:1px solid var(--border);border-radius:6px;font-size:12px;line-height:1.7"><b style="color:var(--accent)">依据：</b>'+escapeHtml(r.reason)+'</div>':'')+
+      evHtml+
+      '<div class="chat-follow" style="margin-top:12px">'+
+      '<button class="btn btn-primary" style="padding:8px 18px" onclick="CALIB.apply()">✔ 写入药势向量</button>'+
+      '<button class="btn" style="padding:8px 16px;border:1px solid var(--border)" onclick="CALIB.run()">↻ 重新标定</button></div></div>';
+  },
+  run:async function(){
+    var n=this.node;
+    if(!n||n.type!=='herb'){toast('请先选择中药节点','error');return;}
+    var self=this;
+    $('calib-thinking').classList.add('show');
+    $('calib-result').classList.remove('show');
+    $('calib-result').innerHTML='';
+    $('calib-thinking-text').textContent='AI 正在按《药势标定学》SOP 推导…';
+    var steps=document.querySelectorAll('#calib-steps .ai-thinking-step');
+    steps.forEach(function(s){s.classList.remove('active','done');s.querySelector('.stmark').textContent='○';});
+    function mark(i,cls,mark){
+      var s=steps[i];
+      s.classList.remove('active','done');s.classList.add(cls);s.querySelector('.stmark').textContent=mark;
+    }
+    var text=[n.nature,n.functions,n.usage,n.pharmacology,n.formulas].filter(Boolean).join('；');
+    if(!text)text='该药暂无性味归经/功能主治资料';
+
+    mark(0,'active','◐');await sleep(200);mark(0,'done','●');
+    var offline=FILEAN.autoVec(text);
+    var evidence=this.evidence(text);
+    mark(1,'active','◐');
+    var llmDirs={},usedApi=false,reason='',modelTag='';
+    if(AICFG.data.enabled&&AICFG.data.key){
+      $('calib-thinking-text').textContent='已启用真实 API：大模型做功效语义分解…';
+      try{
+        var txt=await callLLM(this.prompt(n,text),700);
+        var parsed=this.parseLLM(txt);
+        llmDirs=parsed.dims;reason=parsed.reason;usedApi=!!Object.keys(llmDirs).length;
+        modelTag={glm:'智谱清言 '+AICFG.data.model,deepseek:'DeepSeek '+AICFG.data.model,custom:AICFG.data.model}[AICFG.data.provider]||AICFG.data.model;
+      }catch(e){
+        toast('API 调用失败，已回退内置关键词引擎：'+e.message,'error');
+        $('calib-thinking-text').textContent='API 失败，回退内置关键词引擎…';
+      }
+    }
+    await sleep(240);mark(1,'done','●');
+    mark(2,'active','◐');await sleep(200);mark(2,'done','●');
+    var vec=this.mergeVec(offline,llmDirs);
+    mark(3,'active','◐');await sleep(160);mark(3,'done','●');
+
+    $('calib-thinking').classList.remove('show');
+    $('calib-result').classList.add('show');
+    if(!Object.keys(vec).length){
+      $('calib-result').innerHTML='<div class="ai-section"><div class="ai-section-title">⚠ 未能标定</div>'+
+      '<div style="font-size:12px;color:var(--fg-2)">资料中未识别到八势功效关键词，且未取得大模型方向。请补充「功能主治」后再试。</div></div>';
+      setStatus('标定失败：'+n.name+' 缺功效资料');
+      return;
+    }
+    this.result={vec:vec,oldVec:HENG.herbVec[n.name]||{},offline:offline,llmDirs:llmDirs,
+      usedApi:usedApi,reason:reason,modelTag:modelTag,evidence:evidence};
+    $('calib-result').innerHTML=this.resultHTML();
+    setStatus('✨ 标定完成：'+n.name+' → '+FILEAN.vecStr(vec));
+  },
+  apply:function(){
+    var r=this.result,n=this.node;
+    if(!r||!n||!Object.keys(r.vec).length){toast('没有可写入的向量','error');return;}
+    HENG.herbVec[n.name]=r.vec;
+    HENG.formulaVecCache={};
+    updateDetailPanel();updateNodeList();updateStats();
+    $('modal-calib').classList.remove('show');
+    toast('已写入药势：'+FILEAN.vecStr(r.vec),'success');
+    setStatus('✨ 已标定 '+n.name+' 药势并刷新方剂向量');
+  }
+};
+window.CALIB=CALIB;
+$('calib-run').addEventListener('click',function(){CALIB.run();});
 
 /* ==================================================================
    对话绑定（v3.6）
