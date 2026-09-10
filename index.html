@@ -125,6 +125,10 @@ body::before{content:'';position:fixed;inset:0;z-index:0;background:
 .relation-type.synergy{background:rgba(200,85,61,0.15);color:var(--herb);border-color:var(--herb)}
 .relation-type.antagonism{background:rgba(168,90,58,0.15);color:var(--symptom);border-color:var(--symptom)}
 .relation-type.relieve{background:rgba(58,155,143,0.15);color:var(--medicine);border-color:var(--medicine)}
+.rel-del{cursor:pointer;color:var(--fg-2);padding:2px 7px;font-size:12px;flex-shrink:0;border-radius:4px;line-height:1.4}
+.rel-del:hover{color:var(--danger);background:rgba(200,85,61,0.15)}
+.rel-select{font-size:11px;padding:2px 6px;background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:4px;color:var(--fg);font-family:inherit;cursor:pointer;flex-shrink:0;max-width:110px}
+.rel-select option{background:var(--card-solid)}
 .detail-actions{padding:14px 22px;display:flex;gap:8px;border-top:1px solid var(--border);background:rgba(0,0,0,0.2);flex-wrap:wrap}
 .detail-actions .btn{flex:1;justify-content:center;padding:9px;background:rgba(0,0,0,0.3);border:1px solid var(--border)}
 .detail-actions .btn:hover{border-color:var(--accent)}
@@ -450,6 +454,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;background:
       <button class="btn" id="btn-focus" title="收起两侧面板"><span class="ico">⛶</span><span class="txt">全屏</span></button>
       <button class="btn" id="btn-save" title="保存到本地"><span class="ico">💾</span><span class="txt">保存</span></button>
       <button class="btn" id="btn-export" title="导出 JSON"><span class="ico">⬇</span><span class="txt">导出</span></button>
+      <button class="btn" id="btn-import-file" title="导入本软件导出的 JSON 图谱文件"><span class="ico">📂</span><span class="txt">文件导入</span></button>
       <button class="btn btn-danger" id="btn-clear" title="清空画布"><span class="ico">🗑</span><span class="txt">清空</span></button>
     </div>
     <div class="search-wrap">
@@ -827,7 +832,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;background:
       </div>
       <div style="padding:10px;background:rgba(212,169,67,0.06);border:1px solid rgba(212,169,67,0.25);border-radius:8px;font-size:11px;line-height:1.7;color:var(--fg-2)">
         获取 Key：智谱 <b>open.bigmodel.cn</b>；DeepSeek <b>platform.deepseek.com</b>。<br>
-        点亮「真实 API 调用」后，✨AI分析、🤝AI连接、✨标定药势、💬对话 与 📎文件点评 均升级为大模型模式，断网自动回退离线引擎。
+        点亮「真实 API 调用」后，✨AI分析、🤝AI连接、✨标定药势、📚证候补全、💬对话 与 📎文件点评 均升级为大模型模式，断网自动回退离线引擎。
       </div>
     </div>
     <div class="modal-foot">
@@ -868,6 +873,41 @@ body::before{content:'';position:fixed;inset:0;z-index:0;background:
     <div class="modal-foot">
       <button class="btn" data-close style="padding:9px 16px;border:1px solid var(--border)">关闭</button>
       <button class="btn btn-primary" id="calib-run" style="padding:9px 20px">✨ 开始标定</button>
+    </div>
+  </div>
+</div>
+
+<!-- 证候条目补全 -->
+<div class="modal-mask" id="modal-symfill">
+  <div class="modal" style="width:760px;max-width:96vw">
+    <div class="modal-head">
+      <div class="modal-title">📚 证候条目补全 · 诊断学权威文献</div>
+      <button class="modal-close" data-close title="关闭">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="ai-target" id="symfill-target">
+        <div class="ai-target-icon" style="background:linear-gradient(135deg,var(--symptom),#6a3a1a)">症</div>
+        <div class="ai-target-info">
+          <div class="ai-target-label">补全目标</div>
+          <div class="ai-target-name serif">未选择</div>
+          <div class="ai-target-desc">请在画布中选择一个病症节点</div>
+        </div>
+      </div>
+      <div class="ai-thinking" id="symfill-thinking">
+        <div class="ai-thinking-spinner"></div>
+        <div style="font-size:13px;color:var(--fg-2)" id="symfill-thinking-text">AI 正在按《中医证候鉴别诊断学》框架补全…</div>
+        <div class="ai-thinking-steps" id="symfill-steps">
+          <div class="ai-thinking-step"><span class="stmark">○</span>检索：证候名称 / 别名 / 现有条目</div>
+          <div class="ai-thinking-step"><span class="stmark">○</span>辨证：病机与辨证要点（四诊合参）</div>
+          <div class="ai-thinking-step"><span class="stmark">○</span>鉴别：同类证候鉴别诊断条目</div>
+          <div class="ai-thinking-step"><span class="stmark">○</span>汇方：治法方药与现代医学对照</div>
+        </div>
+      </div>
+      <div class="ai-result" id="symfill-result"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" data-close style="padding:9px 16px;border:1px solid var(--border)">关闭</button>
+      <button class="btn btn-primary" id="symfill-run" style="padding:9px 20px">📚 开始补全</button>
     </div>
   </div>
 </div>
@@ -997,6 +1037,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;background:
   <div class="ctx-item danger" data-act="delete">🗑 删除节点</div>
 </div>
 
+<input type="file" id="file-import-input" accept=".json,application/json" style="display:none">
 <div class="toast-wrap" id="toast-wrap"></div>
 
 <script>
@@ -1686,6 +1727,16 @@ function deleteNode(node){
   nodes=nodes.filter(function(n){return n.id!==node.id;});
   if(selectedNode===node)selectedNode=null;
 }
+function deleteEdge(edge){
+  if(!edge)return;
+  HENG.formulaVecCache={};
+  edges=edges.filter(function(e){return e!==edge;});
+}
+function updateEdgeRelation(edge,rel){
+  if(!edge||!rel)return;
+  HENG.formulaVecCache={};
+  edge.relation=rel;
+}
 function getNodeRelations(node){
   if(!node)return [];
   return edges.filter(function(e){return e.source===node.id||e.target===node.id;}).map(function(e){
@@ -2216,28 +2267,39 @@ function updateDetailPanel(){
   var relations=getNodeRelations(n);
   var imgHtml=n.image?('<img src="'+n.image+'">'):('<div class="detail-thumb-fallback '+n.type+'">'+TYPE_ICON[n.type]+'</div>');
   var props=[];
-  if(n.source)props.push(['来源',n.source]);
-  if(n.nature)props.push(['性味归经',n.nature]);
-  if(n.functions)props.push(['功能主治',n.functions]);
-  if(n.usage)props.push(['用法用量',n.usage]);
-  if(n.processing&&n.processing!=='-')props.push(['炮制/化学成分',n.processing]);
-  if(n.pharmacology)props.push(['药理作用',n.pharmacology]);
-  if(n.toxicity&&n.toxicity!=='-')props.push(['毒理作用',n.toxicity]);
-  if(n.formulas)props.push(['方剂选用',n.formulas]);
-  if(n.precautions)props.push(['注意事项',n.precautions]);
+  var L=(n.type==='symptom')?{source:'文献出处',nature:'证候类别/病机',functions:'临床表现',usage:'治则治法',processing:'辨证要点',pharmacology:'现代医学对照',toxicity:'禁忌',formulas:'代表方剂',precautions:'鉴别诊断/注意'}
+    :{source:'来源',nature:'性味归经',functions:'功能主治',usage:'用法用量',processing:'炮制/化学成分',pharmacology:'药理作用',toxicity:'毒理作用',formulas:'方剂选用',precautions:'注意事项'};
+  if(n.source)props.push([L.source,n.source]);
+  if(n.nature)props.push([L.nature,n.nature]);
+  if(n.functions)props.push([L.functions,n.functions]);
+  if(n.usage)props.push([L.usage,n.usage]);
+  if(n.processing&&n.processing!=='-')props.push([L.processing,n.processing]);
+  if(n.pharmacology)props.push([L.pharmacology,n.pharmacology]);
+  if(n.toxicity&&n.toxicity!=='-')props.push([L.toxicity,n.toxicity]);
+  if(n.formulas)props.push([L.formulas,n.formulas]);
+  if(n.precautions)props.push([L.precautions,n.precautions]);
   var propsHtml=props.map(function(it){
     return '<div class="detail-section"><div class="detail-section-title">'+it[0]+'</div>'+
     '<div class="detail-section-content">'+escapeHtml(it[1]).replace(/\n/g,'<br>')+'</div></div>';
   }).join('');
+  var REL_TYPES=[['compose','组成'],['treat','主治'],['synergy','相须'],['antagonism','相畏禁忌'],['relieve','缓解']];
   var relHtml=relations.length?('<div class="detail-section"><div class="detail-section-title">关联节点 ('+relations.length+')</div>'+
   '<div class="relation-list">'+relations.map(function(r){
-    var relName={compose:'组成',treat:'主治',synergy:'相须',antagonism:'相畏禁忌',relieve:'缓解'}[r.edge.relation]||r.edge.relation;
+    var cur=r.edge.relation;
+    var relColor={compose:'var(--accent)',treat:'var(--success)',synergy:'var(--herb)',antagonism:'var(--symptom)',relieve:'var(--medicine)'}[cur]||'var(--accent)';
+    var sel='<select class="rel-select" data-edge-id="'+r.edge.id+'" title="修改关系类型" style="color:'+relColor+';border-color:'+relColor+'">'+
+      REL_TYPES.map(function(rt){
+        return '<option value="'+rt[0]+'"'+(cur===rt[0]?' selected':'')+'>'+rt[1]+'</option>';
+      }).join('')+
+      (REL_TYPES.some(function(rt){return rt[0]===cur;})?'':'<option value="'+escapeHtml(cur)+'" selected>'+escapeHtml(cur)+'</option>')+
+      '</select>';
     var arrow=r.direction==='out'?'→':'←';
-    return '<div class="relation-item" data-node-id="'+r.other.id+'">'+
-    '<span class="relation-type '+r.edge.relation+'">'+relName+'</span>'+
+    return '<div class="relation-item" data-node-id="'+r.other.id+'" data-edge-id="'+r.edge.id+'">'+
+    sel+
     '<span style="color:var(--fg-2)">'+arrow+'</span>'+
     '<span style="color:'+TYPE_COLOR[r.other.type]+'">●</span>'+
-    '<span class="flex-1">'+escapeHtml(r.other.name)+'</span></div>';
+    '<span class="flex-1">'+escapeHtml(r.other.name)+'</span>'+
+    '<span class="rel-del" data-del-edge="'+r.edge.id+'" title="删除该连接">✕</span></div>';
   }).join('')+'</div></div>'):'';
   body.innerHTML='<div class="detail-header '+n.type+'">'+
   '<div class="detail-thumb">'+imgHtml+'</div>'+
@@ -2254,12 +2316,38 @@ function updateDetailPanel(){
   '<button class="btn" data-act="connect">🔗 连接</button>'+
   '<button class="btn" data-act="aiconnect">🤝 AI连接</button>'+
   (n.type==='herb'?'<button class="btn" data-act="calib">✨ 标定药势</button>':'')+
+  (n.type==='symptom'?'<button class="btn" data-act="symfill">📚 补全条目</button>':'')+
   '<button class="btn" data-act="ai">✨ AI</button>'+
   '<button class="btn btn-danger" data-act="delete">🗑 删除</button></div>';
   body.querySelectorAll('.relation-item').forEach(function(el){
-    el.addEventListener('click',function(){
+    el.addEventListener('click',function(e){
+      if(e.target.closest('.rel-select')||e.target.closest('.rel-del'))return;
       var node=nodes.find(function(n){return n.id===el.dataset.nodeId;});
       if(node){selectedNode=node;focusNode(node);updateDetailPanel();updateNodeList();}
+    });
+  });
+  body.querySelectorAll('.rel-del').forEach(function(el){
+    el.addEventListener('click',function(){
+      var edge=edges.find(function(x){return x.id===el.dataset.delEdge;});
+      if(!edge)return;
+      showConfirm('确认删除该连接吗？删除后可用「🔗 连接」重建。',function(){
+        deleteEdge(edge);
+        toast('连接已删除','success');
+        updateDetailPanel();updateNodeList();updateStats();
+        setStatus('🗑 已删除一条连接');
+      });
+    });
+  });
+  body.querySelectorAll('.rel-select').forEach(function(el){
+    el.addEventListener('click',function(e){e.stopPropagation();});
+    el.addEventListener('change',function(){
+      var edge=edges.find(function(x){return x.id===el.dataset.edgeId;});
+      if(!edge)return;
+      updateEdgeRelation(edge,el.value);
+      var relName={compose:'组成',treat:'主治',synergy:'相须',antagonism:'相畏禁忌',relieve:'缓解'}[el.value]||el.value;
+      toast('关系已改为：'+relName,'success');
+      setStatus('🔗 关系已更新：'+relName);
+      updateDetailPanel();updateNodeList();updateStats();
     });
   });
   body.querySelectorAll('[data-act]').forEach(function(el){
@@ -2269,6 +2357,7 @@ function updateDetailPanel(){
       else if(act==='connect')startConnect(selectedNode);
       else if(act==='aiconnect')AICONNECT.open();
       else if(act==='calib')CALIB.open(selectedNode);
+      else if(act==='symfill')SYMFILL.open(selectedNode);
       else if(act==='ai')openAIModal(selectedNode);
       else if(act==='delete'){deleteNode(selectedNode);toast('节点已删除','success');updateDetailPanel();updateNodeList();updateStats();}
     });
@@ -2329,6 +2418,12 @@ $('btn-focus').addEventListener('click',function(){
 });
 $('btn-save').addEventListener('click',saveData);
 $('btn-export').addEventListener('click',exportData);
+$('btn-import-file').addEventListener('click',function(){$('file-import-input').click();});
+$('file-import-input').addEventListener('change',function(e){
+  var f=e.target.files[0];
+  e.target.value='';
+  if(f)importAtlasFile(f);
+});
 $('btn-clear').addEventListener('click',function(){
   if(edges.length||nodes.length){
     showConfirm('确定要清空所有节点吗？此操作不可撤销。',function(){
@@ -2408,6 +2503,91 @@ function exportData(){
   URL.revokeObjectURL(url);
   toast('已导出 JSON 文件','success');
 }
+function genNodeId(){
+  var id;
+  do{id='n'+(nextId++);}while(nodes.some(function(n){return n.id===id;}));
+  return id;
+}
+function sanitizeImportedNode(n){
+  var t=(['herb','medicine','formula','symptom'].indexOf(n.type)>=0)?n.type:'herb';
+  return {
+    type:t,name:String(n.name||'').slice(0,60),
+    aliases:n.aliases||'',image:n.image||'',dosage:n.dosage||'',unit:n.unit||'g',
+    source:n.source||'',nature:n.nature||'',functions:n.functions||'',usage:n.usage||'',
+    processing:n.processing||'',pharmacology:n.pharmacology||'',toxicity:n.toxicity||'',
+    formulas:n.formulas||'',precautions:n.precautions||'',
+    x:Number.isFinite(Number(n.x))?Number(n.x):(Math.random()-0.5)*400,
+    y:Number.isFinite(Number(n.y))?Number(n.y):(Math.random()-0.5)*400,
+    radius:Number(n.radius)||30
+  };
+}
+function askImportMode(name,nc,ec){
+  return new Promise(function(res){
+    var wrap=$('toast-wrap'),el=document.createElement('div');
+    el.className='toast info';el.style.pointerEvents='auto';el.style.maxWidth='460px';
+    el.innerHTML='<span class="ti">📂</span><span>文件「'+escapeHtml(name)+'」含 '+nc+' 节点、'+ec+' 关系。如何导入？</span>'+
+    '<button class="btn btn-primary" style="padding:4px 12px" data-im="replace">覆盖</button>'+
+    '<button class="btn" style="padding:4px 12px;border:1px solid var(--border)" data-im="merge">合并</button>'+
+    '<button class="btn" style="padding:4px 12px;border:1px solid var(--border)" data-im="0">取消</button>';
+    wrap.appendChild(el);
+    el.querySelector('[data-im="replace"]').onclick=function(){el.remove();res('replace');};
+    el.querySelector('[data-im="merge"]').onclick=function(){el.remove();res('merge');};
+    el.querySelector('[data-im="0"]').onclick=function(){el.remove();res('cancel');};
+  });
+}
+function importAtlasFile(file){
+  if(!file){return;}
+  if(file.size>30*1024*1024){toast('文件过大（>30MB），请精简后再导入','error');return;}
+  var fr=new FileReader();
+  fr.onload=function(){
+    var j;
+    try{j=JSON.parse(String(fr.result||''));}
+    catch(e){toast('文件解析失败：不是有效的 JSON','error');return;}
+    if(!j||typeof j!=='object'||!Array.isArray(j.nodes)||!Array.isArray(j.edges)){
+      toast('不是本软件导出的图谱文件（缺少 nodes/edges）','error');return;
+    }
+    var nn=j.nodes.filter(function(n){return n&&n.name;});
+    var ne=j.edges.filter(function(e){return e&&e.source&&e.target;});
+    if(!nn.length){toast('文件中没有有效节点','error');return;}
+    askImportMode(file.name,nn.length,ne.length).then(function(mode){
+      if(mode==='cancel')return;
+      applyImportedData(mode,nn,ne);
+    });
+  };
+  fr.onerror=function(){toast('文件读取失败','error');};
+  fr.readAsText(file,'utf-8');
+}
+function applyImportedData(mode,nn,ne){
+  if(mode==='replace'){
+    nodes=[];edges=[];selectedNode=null;
+  }
+  HENG.formulaVecCache={};
+  var idToName={},nameMap={},addedN=0,skipN=0,addedE=0,skipE=0;
+  nn.forEach(function(n){idToName[String(n.id||'')]=n.name;});
+  nn.forEach(function(n){
+    if(!n||!n.name)return;
+    if(mode==='merge'&&findNode(n.name)){skipN++;return;}
+    var node=sanitizeImportedNode(n);
+    node.id=genNodeId();
+    nameMap[n.name]=node.id;
+    nodes.push(node);
+    addedN++;
+  });
+  ne.forEach(function(e){
+    var sn=idToName[String(e.source)],tn=idToName[String(e.target)];
+    var sid=nameMap[sn],tid=nameMap[tn];
+    if(!sid||!tid){skipE++;return;}
+    var dup=edges.some(function(x){return (x.source===sid&&x.target===tid)||(x.source===tid&&x.target===sid);});
+    if(dup){skipE++;return;}
+    edges.push({id:'e'+(nextId++),source:sid,target:tid,relation:e.relation||'compose'});
+    addedE++;
+  });
+  updateDetailPanel();updateNodeList();updateStats();
+  fitView();
+  saveData();
+  toast('导入完成：'+(mode==='replace'?'已替换为':'新增')+' '+addedN+' 节点、'+addedE+' 关系'+(skipN?('，跳过同名节点 '+skipN):'')+(skipE?('，跳过关系 '+skipE):''),'success');
+  setStatus('📂 文件导入完成：'+addedN+' 节点 · '+addedE+' 关系');
+}
 function startConnect(node){
   connectMode=true;connectSource=node;
   canvas.classList.add('connecting');
@@ -2480,13 +2660,48 @@ $('img-input').addEventListener('change',function(e){
   }
 });
 $('modal-edit').addEventListener('paste',function(e){
-  var items=e.clipboardData&&e.clipboardData.items;if(!items)return;
-  for(var i=0;i<items.length;i++){
-    if(items[i].type.indexOf('image')!==-1){
-      var reader=new FileReader();
-      reader.onload=function(ev){editImage=ev.target.result;updateImagePreview();toast('截图已粘贴','success');};
-      reader.readAsDataURL(items[i].getAsFile());
-      break;
+  var items=e.clipboardData&&e.clipboardData.items;
+  var text=e.clipboardData?e.clipboardData.getData('text/plain'):'';
+  var hasImage=false;
+  if(items){
+    for(var i=0;i<items.length;i++){
+      if(items[i].type.indexOf('image')!==-1){hasImage=true;break;}
+    }
+  }
+  if(hasImage){
+    for(var j=0;j<items.length;j++){
+      if(items[j].type.indexOf('image')!==-1){
+        var reader=new FileReader();
+        reader.onload=function(ev){editImage=ev.target.result;updateImagePreview();toast('截图已粘贴','success');};
+        reader.readAsDataURL(items[j].getAsFile());
+        break;
+      }
+    }
+    return;
+  }
+  if(text&&/【(性味与归经|性味归经|功能与主治|功能主治|主治|适应症|适应证|用法与用量|用法用量|注意|禁忌|不良反应|炮制|制法|处方|含量测定)】/.test(text)){
+    e.preventDefault();
+    var node=YD_IMPORT.parseOne(text);
+    if(node){
+      editType=node.type;
+      document.querySelectorAll('.type-pick-item').forEach(function(x){x.classList.toggle('selected',x.dataset.type===editType);});
+      $('f-name').value=node.name||'';
+      $('f-aliases').value=node.aliases||'';
+      $('f-dosage').value=node.dosage||'';
+      $('f-unit').value=node.unit||'g';
+      $('f-source').value=node.source||'';
+      $('f-nature').value=node.nature||'';
+      $('f-functions').value=node.functions||'';
+      $('f-usage').value=node.usage||'';
+      $('f-processing').value=node.processing||'';
+      $('f-pharmacology').value=node.pharmacology||'';
+      $('f-toxicity').value=node.toxicity||'';
+      $('f-formulas').value=node.formulas||'';
+      $('f-precautions').value=node.precautions||'';
+      toast('已按药典内容填充：'+node.name+'（'+TYPE_LABEL[node.type]+'）','success');
+      setStatus('✎ 粘贴填充：'+node.name);
+    }else{
+      toast('药典内容解析失败，请检查格式','error');
     }
   }
 });
@@ -2555,7 +2770,7 @@ $('api-save').addEventListener('click',function(){
   AICFG.data.key=$('api-key').value.trim();
   AICFG.data.proxy=$('api-proxy').value.trim();
   AICFG.save();
-  toast(AICFG.data.enabled&&AICFG.data.key?'配置已保存：✨AI分析、🤝AI连接、✨标定药势、💬对话 与 📎文件点评 将调用真实 API':'配置已保存（内置引擎模式）','success');
+  toast(AICFG.data.enabled&&AICFG.data.key?'配置已保存：✨AI分析、🤝AI连接、✨标定药势、📚证候补全、💬对话 与 📎文件点评 将调用真实 API':'配置已保存（内置引擎模式）','success');
   $('modal-api').classList.remove('show');
 });
 $('api-test').addEventListener('click',async function(){
@@ -3185,22 +3400,43 @@ var YD_IMPORT={
       '</div></div>';
     }).join('');
   },
-  doImport:function(items){
-    var added=0,skipped=0;
-    items.forEach(function(n){
-      if(nodes.find(function(x){return x.name===n.name;})){skipped++;return;}
+  doImport:async function(items){
+    var added=0,skipped=0,overwritten=0;
+    for(var i=0;i<items.length;i++){
+      var n=items[i];
+      var exist=nodes.find(function(x){return x.name===n.name;});
+      if(exist){
+        var act=await askImportConflict(n.name,n.type);
+        if(act!=='overwrite'){skipped++;continue;}
+        var keep={id:exist.id,x:exist.x,y:exist.y};
+        Object.assign(exist,n,keep);
+        overwritten++;
+        continue;
+      }
       var cw=canvas.width/DPR/2,ch=canvas.height/DPR/2;
       var wp=screenToWorld(cw,ch);
       n.x=wp.x+(Math.random()-0.5)*500;
       n.y=wp.y+(Math.random()-0.5)*400;
       addNode(n);
       added++;
-    });
+    }
     updateDetailPanel();updateNodeList();updateStats();
-    toast('导入完成：新增 '+added+' 个节点'+(skipped?('，跳过 '+skipped+' 个重复'):''),'success');
+    toast('导入完成：新增 '+added+' 个节点'+(overwritten?('，覆盖 '+overwritten+' 个'):'')+(skipped?('，跳过 '+skipped+' 个'):''),'success');
     $('modal-import').classList.remove('show');
   }
 };
+function askImportConflict(name,type){
+  return new Promise(function(res){
+    var wrap=$('toast-wrap'),el=document.createElement('div');
+    el.className='toast info';el.style.pointerEvents='auto';
+    el.innerHTML='<span class="ti">⚠</span><span>画布已存在「'+escapeHtml(name)+'」（'+escapeHtml(TYPE_LABEL[type]||type)+'），是否用导入内容覆盖？</span>'+
+    '<button class="btn btn-primary" style="padding:4px 12px" data-ov="1">覆盖</button>'+
+    '<button class="btn" style="padding:4px 12px;border:1px solid var(--border)" data-ov="0">跳过</button>';
+    wrap.appendChild(el);
+    el.querySelector('[data-ov="1"]').onclick=function(){el.remove();res('overwrite');};
+    el.querySelector('[data-ov="0"]').onclick=function(){el.remove();res('skip');};
+  });
+}
 $('btn-import').addEventListener('click',function(){$('modal-import').classList.add('show');});
 $('imp-parse').addEventListener('click',function(){
   var raw=$('imp-raw').value.trim();
@@ -3367,11 +3603,18 @@ var AICONNECT={
         }
       }
       else if(node.type==='symptom'&&cand.type==='formula'){
-        var sim2=HENG.cosine(HENG.formulaVec(cand),nv||{});
-        if(sim2>=0.75){
-          out.push({name:cand.name,type:cand.type,relation:'treat',
-            confidence:Math.min(0.92,0.5+sim2*0.4),
-            reason:'余弦相似度 '+Math.round(sim2*100)+'%：方剂主治本证'});
+        var named=(node.formulas||'').split(/[、,，;；\s]+/).filter(Boolean).indexOf(cand.name)>=0;
+        if(named){
+          out.push({name:cand.name,type:cand.type,relation:'treat',confidence:0.95,
+            reason:'证候条目「代表方剂」记载：'+node.name+' 选用「'+cand.name+'」'});
+        }else{
+          var fv3=HENG.formulaVec(cand);
+          var sim2=HENG.cosine(fv3,nv||{});
+          if(sim2>=0.55){
+            out.push({name:cand.name,type:cand.type,relation:'treat',
+              confidence:Math.min(0.92,0.4+sim2*0.5),
+              reason:'余弦相似度 '+Math.round(sim2*100)+'%：方剂药势合力与病机向量一致（方证对应）'});
+          }
         }
       }
       else if((node.type==='medicine'&&cand.type==='symptom')||(node.type==='symptom'&&cand.type==='medicine')){
@@ -3393,17 +3636,20 @@ var AICONNECT={
     var conn=this.connectedIds(node);
     var compat={herb:['herb','formula','symptom'],formula:['herb','symptom'],
                 symptom:['formula','herb','medicine'],medicine:['symptom']}[node.type]||[];
+    var order={};
+    compat.forEach(function(t,i){order[t]=i;});
     var cands=nodes.filter(function(n){
-      return n.id!==node.id&&!conn.has(n.id)&&compat.indexOf(n.type)>=0;
-    }).slice(0,55);
+      return n.id!==node.id&&!conn.has(n.id)&&order[n.type]!=null;
+    }).sort(function(a,b){return order[a.type]-order[b.type];}).slice(0,60);
     var nv=this.vecOf(node);
     var candText=cands.map(function(c){
       return '· '+c.name+'（'+TYPE_LABEL[c.type]+'）'+((c.functions||'').slice(0,36));
     }).join('\n');
     var msgs=[
-      {role:'system',content:'你是中医药知识图谱专家。分析主节点与候选节点间的潜在关系。关系类型：compose=组成（方剂→药材）｜treat=主治（方剂/药材→病症）｜synergy=相须配伍｜antagonism=相畏禁忌（十八反等）｜relieve=缓解（西药→病症）。依据药性、功效、病机、配伍理论判断。必须输出纯JSON数组（不要markdown），每项：{"name":"候选节点名","relation":"类型","confidence":0到1,"reason":"简短依据"}。只输出确有依据的项，最多15项。'},
+      {role:'system',content:'你是中医药知识图谱专家。分析主节点与候选节点间的潜在关系。关系类型：compose=组成（方剂→药材）｜treat=主治（方剂/药材→病症）｜synergy=相须配伍｜antagonism=相畏禁忌（十八反等）｜relieve=缓解（西药→病症）。依据药性、功效、病机、配伍理论判断；对病症节点，优先按「代表方剂」与方证对应（方剂向量×病机向量余弦相似）推荐 treat 关系的方剂。必须输出纯JSON数组（不要markdown），每项：{"name":"候选节点名","relation":"类型","confidence":0到1,"reason":"简短依据"}。只输出确有依据的项，最多15项。'},
       {role:'user',content:'主节点：'+node.name+'（'+TYPE_LABEL[node.type]+'）\n'+
         '性味/类别：'+(node.nature||'—')+'\n功效：'+((node.functions||'—').slice(0,120))+'\n'+
+        (node.type==='symptom'&&node.formulas?('代表方剂：'+(node.formulas||'—')+'\n'):'')+
         (nv?('衡象向量：'+JSON.stringify(nv)+'\n'):'')+
         '候选节点列表：\n'+candText}
     ];
@@ -3441,6 +3687,13 @@ var AICONNECT={
     if(AICFG.data.enabled&&AICFG.data.key){
       try{
         list=await this.apiSuggest(node);mode='🤖 大模型分析（'+AICFG.data.model+'）';
+        if(node.type==='symptom'){
+          var seen={};list.forEach(function(s){seen[s.name]=1;});
+          this.localSuggest(node).forEach(function(s){
+            if(s.type==='formula'&&s.confidence>=0.9&&!seen[s.name]){seen[s.name]=1;list.push(s);}
+          });
+          list=list.sort(function(a,b){return b.confidence-a.confidence;});
+        }
       }catch(e){
         toast('API 分析失败，已回退本地引擎：'+e.message,'error');
         list=this.localSuggest(node);mode='⚙ 本地规则引擎（API 失败回退）';
@@ -4773,6 +5026,139 @@ var CALIB={
 };
 window.CALIB=CALIB;
 $('calib-run').addEventListener('click',function(){CALIB.run();});
+
+/* ==================================================================
+   证候条目补全 SYMFILL（AI 诊断学文献 + 内置知识库）
+================================================================== */
+var SYMFILL={
+  node:null,result:null,
+  open:function(node){
+    if(!node||node.type!=='symptom'){toast('证候补全仅适用于病症节点','error');return;}
+    this.node=node;this.result=null;
+    $('symfill-target').innerHTML=
+      '<div class="ai-target-icon" style="background:linear-gradient(135deg,var(--symptom),#6a3a1a)">'+TYPE_ICON.symptom+'</div>'+
+      '<div class="ai-target-info"><div class="ai-target-label">补全目标 · '+TYPE_LABEL.symptom+'</div>'+
+      '<div class="ai-target-name serif">'+escapeHtml(node.name)+'</div>'+
+      '<div class="ai-target-desc">'+escapeHtml((node.nature||node.functions||'暂无条目').slice(0,60))+'</div></div>';
+    $('symfill-thinking').classList.remove('show');
+    $('symfill-result').classList.remove('show');
+    $('symfill-result').innerHTML='';
+    $('modal-symfill').classList.add('show');
+    setStatus('📚 证候补全：'+node.name);
+  },
+  prompt:function(n){
+    var vec=HENG.symptomVec[n.name]||{};
+    var dims=Object.keys(vec).sort(function(a,b){return vec[b]-vec[a];});
+    var heng=dims.map(function(d){return HENG.gua[d].force+'+'+vec[d]+'（'+HENG.gua[d].state+'）';}).join('、');
+    var formulas=edges.filter(function(e){return e.relation==='treat'&&e.target===n.id;})
+      .map(function(e){var s=nodes.find(function(x){return x.id===e.source;});return s?s.name:'';}).filter(Boolean);
+    return [
+      {role:'system',content:'你是中医诊断学专家，严格依据《中医证候鉴别诊断学》《中医诊断学》《中医内科学》等权威教材撰写条目。只输出纯 JSON（不要 markdown），结构：{"source":"文献出处","nature":"证候类别与病机","functions":"临床表现（主症、兼症、舌脉）","usage":"治则治法","processing":"辨证要点（四诊合参）","pharmacology":"现代医学对照","formulas":"代表方剂","precautions":"鉴别诊断与注意事项"}。内容须条目化、可溯源、不编造。'},
+      {role:'user',content:'请为证候「'+n.name+'」补全条目。\n别名：'+(n.aliases||'无')+'\n现有条目：'+(n.functions||n.nature||'无')+'\n衡象向量：'+(heng||'未标定')+'\n图谱主治方剂：'+(formulas.join('、')||'无')}
+    ];
+  },
+  parse:function(txt){
+    var m=String(txt||'').match(/\{[\s\S]*\}/),j=null;
+    if(m){try{j=JSON.parse(m[0]);}catch(e){}}
+    var out={};
+    if(j&&typeof j==='object'){
+      ['source','nature','functions','usage','processing','pharmacology','formulas','precautions'].forEach(function(k){
+        if(typeof j[k]==='string'&&j[k].trim())out[k]=j[k].trim();
+      });
+    }
+    return out;
+  },
+  offlineFill:function(n){
+    var vec=HENG.symptomVec[n.name]||{};
+    var dims=Object.keys(vec).sort(function(a,b){return vec[b]-vec[a];});
+    var g=dims.length?HENG.gua[dims[0]]:null;
+    var pre=HENG.prescribe(n.name);
+    var o={};
+    if(!n.source)o.source='内置知识库 · 衡象论';
+    if(!n.nature&&g)o.nature='衡象态：'+dims.map(function(d){return HENG.gua[d].sym+HENG.gua[d].state;}).join('·');
+    if(!n.functions&&g)o.functions=g.symptoms;
+    if(!n.usage&&g)o.usage=g.law;
+    if(!n.processing)o.processing='四轴八衡：'+dims.map(function(d){return HENG.gua[d].force+'+'+vec[d];}).join('，');
+    if(!n.pharmacology&&g)o.pharmacology='现代生理对照：'+g.axis;
+    if(!n.formulas&&pre&&pre.fmatches[0])o.formulas=pre.fmatches.map(function(f){return f.f.name;}).slice(0,3).join('、');
+    if(!n.precautions&&g)o.precautions=g.warn;
+    return o;
+  },
+  resultHTML:function(){
+    var r=this.result,n=this.node;
+    var modelTag={glm:'智谱清言 '+AICFG.data.model,deepseek:'DeepSeek '+AICFG.data.model,custom:AICFG.data.model}[AICFG.data.provider]||AICFG.data.model;
+    var labels={source:'文献出处',nature:'证候类别/病机',functions:'临床表现',usage:'治则治法',processing:'辨证要点',pharmacology:'现代医学对照',formulas:'代表方剂',precautions:'鉴别诊断/注意'};
+    var rows=Object.keys(labels).map(function(k){
+      var v=r.fields[k];
+      return v?'<div class="ai-scheme" style="margin-bottom:8px"><div class="ai-scheme-head"><div class="ai-scheme-name" style="font-size:13px">'+labels[k]+'</div></div><div class="ai-scheme-body" style="font-size:12.5px;line-height:1.8">'+escapeHtml(v).replace(/\n/g,'<br>')+'</div></div>':'';
+    }).join('');
+    var modeTxt=r.usedApi?('🤖 大模型生成（'+modelTag+'）· 依据《中医证候鉴别诊断学》等权威教材'):'⚙ 内置知识库补全（未启用 API / 调用失败回退）';
+    return '<div class="ai-section"><div class="ai-section-title">📚 补全结果 · '+escapeHtml(n.name)+'</div>'+
+      '<div style="font-size:11px;color:var(--fg-2);margin-bottom:10px">'+modeTxt+'</div>'+rows+
+      '<div class="chat-follow" style="margin-top:12px">'+
+      '<button class="btn btn-primary" style="padding:8px 16px" onclick="SYMFILL.apply(false)">✔ 补全空白条目</button>'+
+      '<button class="btn" style="padding:8px 16px;border:1px solid var(--border)" onclick="SYMFILL.apply(true)">⬇ 覆盖全部条目</button></div>'+
+      '<div style="font-size:10px;color:var(--muted);margin-top:6px">「补全空白」只写入当前为空的条目；「覆盖全部」以 AI 内容替换所有条目。</div></div>';
+  },
+  run:async function(){
+    var n=this.node;
+    if(!n||n.type!=='symptom'){toast('请先选择病症节点','error');return;}
+    var self=this;
+    $('symfill-thinking').classList.add('show');
+    $('symfill-result').classList.remove('show');
+    $('symfill-result').innerHTML='';
+    $('symfill-thinking-text').textContent='AI 正在按《中医证候鉴别诊断学》框架补全…';
+    var steps=document.querySelectorAll('#symfill-steps .ai-thinking-step');
+    steps.forEach(function(s){s.classList.remove('active','done');s.querySelector('.stmark').textContent='○';});
+    function mark(i,cls,mk){var s=steps[i];s.classList.remove('active','done');s.classList.add(cls);s.querySelector('.stmark').textContent=mk;}
+    mark(0,'active','◐');await sleep(200);mark(0,'done','●');
+    mark(1,'active','◐');
+    var fields={},usedApi=false;
+    if(AICFG.data.enabled&&AICFG.data.key){
+      $('symfill-thinking-text').textContent='已启用真实 API：依据权威诊断学文献生成条目…';
+      try{
+        var txt=await callLLM(this.prompt(n),1500);
+        fields=this.parse(txt);
+        usedApi=Object.keys(fields).length>0;
+      }catch(e){
+        toast('API 调用失败，已回退内置知识库：'+e.message,'error');
+        $('symfill-thinking-text').textContent='API 失败，回退内置知识库…';
+      }
+    }
+    await sleep(260);mark(1,'done','●');
+    mark(2,'active','◐');await sleep(220);mark(2,'done','●');
+    var off=this.offlineFill(n);
+    Object.keys(off).forEach(function(k){if(!fields[k])fields[k]=off[k];});
+    mark(3,'active','◐');await sleep(160);mark(3,'done','●');
+    $('symfill-thinking').classList.remove('show');
+    $('symfill-result').classList.add('show');
+    if(!Object.keys(fields).length){
+      $('symfill-result').innerHTML='<div class="ai-section"><div class="ai-section-title">⚠ 未能补全</div>'+
+      '<div style="font-size:12px;color:var(--fg-2)">未取得 AI 内容，且内置知识库无可用信息。请在编辑弹窗补充证候名称或症状后再试。</div></div>';
+      setStatus('补全失败：'+n.name);
+      return;
+    }
+    this.result={fields:fields,usedApi:usedApi};
+    $('symfill-result').innerHTML=this.resultHTML();
+    setStatus('📚 补全完成：'+n.name);
+  },
+  apply:function(overwrite){
+    var r=this.result,n=this.node;
+    if(!r||!n){toast('没有可写入的条目','error');return;}
+    var fields=r.fields,written=0;
+    Object.keys(fields).forEach(function(k){
+      if(fields[k]&&(overwrite||!n[k])){n[k]=fields[k];written++;}
+    });
+    if(!written){toast('没有需要写入的条目','info');return;}
+    updateDetailPanel();updateNodeList();updateStats();
+    saveData();
+    $('modal-symfill').classList.remove('show');
+    toast('已写入 '+written+' 个条目（'+(overwrite?'覆盖':'补全空白')+'）','success');
+    setStatus('📚 已补全 '+n.name+' 条目');
+  }
+};
+window.SYMFILL=SYMFILL;
+$('symfill-run').addEventListener('click',function(){SYMFILL.run();});
 
 /* ==================================================================
    对话绑定（v3.6）
